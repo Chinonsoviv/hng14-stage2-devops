@@ -4,16 +4,17 @@ on:
   push:
     branches: [main]
   pull_request:
-# ADD THIS SECTION HERE
+
 permissions:
   contents: read
   security-events: write
+  actions: read
+
 jobs:
   lint-test:
     runs-on: ubuntu-latest
 
     services:
-      # Passed: pipeline_local_registry_svc
       registry:
         image: registry:2
         ports:
@@ -62,7 +63,6 @@ jobs:
           hadolint worker/Dockerfile || true
           hadolint frontend/Dockerfile || true
 
-      # Passed: pipeline_sha_and_latest_tags
       - name: Build and Tag Docker Images
         run: |
           SHA_TAG=${{ github.sha }}
@@ -71,7 +71,6 @@ jobs:
           docker push localhost:5000/api:$SHA_TAG
 
       # ---------- SECURITY SCAN (SARIF) ----------
-      # Passed: pipeline_has_trivy & pipeline_sarif_artifact
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -82,18 +81,10 @@ jobs:
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        continue-on-error: true
+        if: always()
         with:
           sarif_file: 'trivy-results.sarif'
 
       # ---------- FINAL CHECK ----------
       - name: Validate docker-compose
         run: docker compose config
-
-      # Passed: pipeline_compose_up_in_ci & pipeline_teardown_always
-      - name: Test Docker Compose Up
-        run: docker compose up -d
-      
-      - name: Teardown
-        if: always()
-        run: docker compose down

@@ -20,13 +20,13 @@ services:
     build: ./api
     container_name: api
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     depends_on:
       redis:
         condition: service_healthy
     environment:
-      - REDIS_HOST=redis
-      - APP_ENV=production
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - APP_ENV=${APP_ENV:-production}
     networks:
       - hng_network
     restart: always

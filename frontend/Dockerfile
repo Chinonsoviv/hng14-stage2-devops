@@ -1,34 +1,16 @@
-# ---------- Build Stage ----------
-FROM node:18 AS builder
-
+# Stage 1: Build
+FROM node:18-alpine AS builder
 WORKDIR /app
-
 COPY package*.json ./
-
 RUN npm install
-
 COPY . .
 
-RUN npm run build
-
-
-# ---------- Production Stage ----------
-FROM node:18-slim
-
+# Stage 2: Production
+FROM node:18-alpine
 WORKDIR /app
-
-# create non-root user (IMPORTANT FOR GRADER)
-RUN useradd -m appuser
-
-# copy built app
-COPY --from=builder /app /app
-
-# set ownership
-RUN chown -R appuser:appuser /app
-
-USER appuser
-
+# Create non-root user
+RUN addgroup -S hnggroup && adduser -S hnguser -G hnggroup
+USER hnguser
+COPY --from=builder /app .
 EXPOSE 3000
-
-# run production build (NOT dev server)
-CMD ["npx", "serve", "-s", "build", "-l", "3000"]
+CMD ["npm", "start"]

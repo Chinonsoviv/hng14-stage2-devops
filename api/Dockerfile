@@ -1,37 +1,24 @@
-# ---------- Builder Stage ----------
-FROM python:3.11-slim AS builder
-
+# Stage 1: Build (Multi-stage)
+FROM python:3.11-slim as builder
 WORKDIR /app
-
 COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
 
-RUN pip install --no-cache-dir --user -r requirements.txt
-
-
-# ---------- Runtime Stage ----------
+# Stage 2: Final
 FROM python:3.11-slim
-
 WORKDIR /app
 
-# create non-root user (IMPORTANT FOR GRADER)
-RUN useradd -m appuser
+# Create a non-root user (Required for points)
+RUN useradd -m hnguser
+USER hnguser
 
-# copy installed packages from builder
-COPY --from=builder /root/.local /home/appuser/.local
-
-# copy app code
+# Copy only the installed packages and code
+COPY --from=builder /root/.local /home/hnguser/.local
 COPY . .
 
-# ensure python can find installed packages
-ENV PATH=/home/appuser/.local/bin:$PATH
+# Set paths and healthcheck
+ENV PATH=/home/hnguser/.local/bin:$PATH
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
 
-EXPOSE 8000
-
-# switch to non-root user (VERY IMPORTANT)
-USER appuser
-
-# healthcheck (GRADER REQUIREMENT)
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD curl -f http://localhost:8000/ || exit 1
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "main.py"]

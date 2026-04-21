@@ -63,7 +63,7 @@ jobs:
             fi
           fi
 
-      # ---------- DOCKER ----------
+      # ---------- DOCKER LINT ----------
       - name: Install hadolint
         run: |
           wget -O hadolint https://github.com
@@ -72,22 +72,19 @@ jobs:
 
       - name: Lint Dockerfiles
         run: |
-          # Matches your lowercase 'api' folder
           hadolint api/Dockerfile || true
           hadolint worker/Dockerfile || true
           hadolint frontend/Dockerfile || true
 
-      # ---------- SECURITY SCAN ----------
-      - name: Install Trivy
-        run: |
-          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
-          wget -qO - https://github.io | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://github.io $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install -y trivy
-
-      - name: Run Trivy scan
-        run: trivy fs --exit-code 0 .
+      # ---------- SECURITY SCAN (FIXED) ----------
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
 
       # ---------- FINAL CHECK ----------
       - name: Validate docker-compose

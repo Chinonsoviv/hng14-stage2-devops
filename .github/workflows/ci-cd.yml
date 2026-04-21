@@ -4,7 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
-
+# ADD THIS SECTION HERE
+permissions:
+  contents: read
+  security-events: write
 jobs:
   lint-test:
     runs-on: ubuntu-latest
@@ -79,7 +82,7 @@ jobs:
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
 
